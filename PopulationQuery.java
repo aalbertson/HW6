@@ -18,6 +18,9 @@ public class PopulationQuery {
 	public static float minLong;
 	public static float maxLong;
 	
+	public static int totalPop;
+	public static int queryPop;
+	
 	// parse the input file into a large array held in a CensusData object
 	public static CensusData parse(String filename) {
 		CensusData result = new CensusData();
@@ -78,7 +81,7 @@ public class PopulationQuery {
 	String version = args[3];
 	
 	CensusData censusData = parse(filename);
-	computeRectangle(censusData);
+	versionOne(censusData);
 	
 	Scanner console = new Scanner(System.in);
 	System.out.println("Please give west, south, east, north coordinates of your query");
@@ -87,17 +90,18 @@ public class PopulationQuery {
 	
 	String[] borders = rect.split(" ");
 	
-	if(borders.length == 4) {
-		int left = 
+	if (borders.length == 4) {
+		//int left = 0;
 	}
 	}
 	
-	public static void computeRectangle(CensusData censusData) {
+	public static void versionOne(CensusData censusData) {
 		minLat = censusData.data[0].latitude;
 		maxLat = censusData.data[0].latitude;
 		minLong = censusData.data[0].longitude;
 		maxLong = censusData.data[0].longitude;
 		
+		// compute US rectangle size
 		for (int i = 1; i < censusData.data_size; i++) {
 			float lat = censusData.data[i].latitude;
 			float lon = censusData.data[i].longitude;
@@ -105,6 +109,14 @@ public class PopulationQuery {
 			maxLat = Math.max(maxLat, lat);
 			minLong = Math.min(minLong, lon);
 			maxLong = Math.max(maxLong, lon);
+		}
+		
+		// compute population of small rectangle: totalPop
+		// compute population of entire US: queryPop
+		for (int i = 0; i < censusData.data_size; i++) {
+			int pop = censusData.data[i].population;
+			
+			//long-minLong / long per rectange
 		}
 				
 	}
