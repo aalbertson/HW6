@@ -82,40 +82,44 @@ public class PopulationQuery {
         CensusData censusData = parse(filename);
 
         Scanner console = new Scanner(System.in);
-        System.out.println("Please give west, south, east, north coordinates of your query");
-        System.out.println("  rectangle:");
-        String rect = console.next();
+        boolean cont = true;
+        while (cont) {
+            System.out.println("Please give west, south, east, north coordinates of your query");
+            System.out.println("  rectangle:");
+            String rect = console.next();
 
-        String[] borders = rect.trim().split("-"); //todo: change
+            String[] borders = rect.trim().split("-"); //todo: change
 
-        System.out.println("hey borders has a length of " + borders.length); //todo: remove
+            System.out.println("hey borders has a length of " + borders.length); //todo: remove
 
-        if (borders.length == 4) {
-            int west = Integer.parseInt(borders[0]);
-            int south = Integer.parseInt(borders[1]);
-            int east = Integer.parseInt(borders[2]);
-            int north = Integer.parseInt(borders[3]);
+            if (borders.length == 4) {
+                int west = Integer.parseInt(borders[0]);
+                int south = Integer.parseInt(borders[1]);
+                int east = Integer.parseInt(borders[2]);
+                int north = Integer.parseInt(borders[3]);
 
-            if ((west < 1) || (west > x) || (south < 1) || (south > y)
-                    || (east < west) || (east > x) || (north < south) || (north > y)) {
-                throw new IllegalArgumentException();
-            }
+                if ((west < 1) || (west > x) || (south < 1) || (south > y)
+                        || (east < west) || (east > x) || (north < south) || (north > y)) {
+                    throw new IllegalArgumentException();
+                }
 
-            if (version.equals("-v1")) {
-                System.out.println("Test starting..."); //TODO: remove
+                if (version.equals("-v1")) {
+                    System.out.println("Test starting..."); //TODO: remove
 
-                versionOne(censusData, x, y, west, south, east, north);
+                    versionOne(censusData, x, y, west, south, east, north);
 
-                double percent = (double)queryPop / totalPop;
-                percent = Math.round(percent * 100 * 100);
-                percent = percent/100;
+                    double percent = (double) queryPop / totalPop;
+                    percent = Math.round(percent * 100 * 100);
+                    percent = percent / 100;
 
-                System.out.println("population of rectangle: " + queryPop);
-                System.out.println("total pop: " + totalPop); //TODO: remove
-                System.out.println("percent of total population: " + percent);
+                    System.out.println("population of rectangle: " + queryPop);
+                    System.out.println("total pop: " + totalPop); //TODO: remove
+                    System.out.println("percent of total population: " + percent);
+                }
+            } else {
+                cont = false;
             }
         }
-
 	}
 	
 	public static void versionOne(CensusData censusData, int x, int y,
