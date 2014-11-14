@@ -12,14 +12,14 @@ public class PopulationQuery {
 	public static final int LATITUDE_INDEX   = 5;
 	public static final int LONGITUDE_INDEX  = 6;
 	
-	//get rid of later
+	// TODO: get rid of later and rearrange code
 	public static float minLat;
 	public static float maxLat;
 	public static float minLong;
 	public static float maxLong;
 	
-	public static int totalPop;
-	public static int queryPop;
+	public static int totalPop = 0;
+	public static int queryPop = 0;
 	
 	// parse the input file into a large array held in a CensusData object
 	public static CensusData parse(String filename) {
@@ -63,39 +63,67 @@ public class PopulationQuery {
         return result;
 	}
 
+
 	// argument 1: file name for input data: pass this to parse
 	// argument 2: number of x-dimension buckets
 	// argument 3: number of y-dimension buckets
 	// argument 4: -v1, -v2, -v3, -v4, or -v5
 	public static void main(String[] args) throws IllegalArgumentException {
 
-	// pre: 
-	// (otherwise a IllegalArgumentException is thrown)
-	if (args.length < 4) {
-		throw new IllegalArgumentException();
+        if (args.length < 4) {
+            throw new IllegalArgumentException();
+        }
+
+        String filename = args[0];
+        int x = Integer.parseInt(args[1]);
+        int y = Integer.parseInt(args[2]);
+        String version = args[3];
+
+        CensusData censusData = parse(filename);
+
+        Scanner console = new Scanner(System.in);
+        boolean cont = true;
+        while (cont) {
+            System.out.println("Please give west, south, east, north coordinates of your query");
+            System.out.println("  rectangle:");
+            String rect = console.next();
+
+            String[] borders = rect.trim().split("-"); //todo: change
+
+            System.out.println("hey borders has a length of " + borders.length); //todo: remove
+
+            if (borders.length == 4) {
+                int west = Integer.parseInt(borders[0]);
+                int south = Integer.parseInt(borders[1]);
+                int east = Integer.parseInt(borders[2]);
+                int north = Integer.parseInt(borders[3]);
+
+                if ((west < 1) || (west > x) || (south < 1) || (south > y)
+                        || (east < west) || (east > x) || (north < south) || (north > y)) {
+                    throw new IllegalArgumentException();
+                }
+
+                if (version.equals("-v1")) {
+                    System.out.println("Test starting..."); //TODO: remove
+
+                    versionOne(censusData, x, y, west, south, east, north);
+
+                    double percent = (double) queryPop / totalPop;
+                    percent = Math.round(percent * 100 * 100);
+                    percent = percent / 100;
+
+                    System.out.println("population of rectangle: " + queryPop);
+                    System.out.println("total pop: " + totalPop); //TODO: remove
+                    System.out.println("percent of total population: " + percent);
+                }
+            } else {
+                cont = false;
+            }
+        }
 	}
 	
-	String filename = args[0];
-	int x = Integer.parseInt(args[1]);
-	int y = Integer.parseInt(args[2]);
-	String version = args[3];
-	
-	CensusData censusData = parse(filename);
-	versionOne(censusData);
-	
-	Scanner console = new Scanner(System.in);
-	System.out.println("Please give west, south, east, north coordinates of your query");
-	System.out.println("  rectangle:");
-	String rect = console.next();
-	
-	String[] borders = rect.split(" ");
-	
-	if (borders.length == 4) {
-		//int left = 0;
-	}
-	}
-	
-	public static void versionOne(CensusData censusData) {
+	public static void versionOne(CensusData censusData, int x, int y,
+                                  int west, int south, int east, int north) {
 		minLat = censusData.data[0].latitude;
 		maxLat = censusData.data[0].latitude;
 		minLong = censusData.data[0].longitude;
@@ -110,13 +138,24 @@ public class PopulationQuery {
 			minLong = Math.min(minLong, lon);
 			maxLong = Math.max(maxLong, lon);
 		}
+
+        float colSize = (maxLong - minLong) / x;
+        float rowSize = (maxLat - minLat) / y;
 		
-		// compute population of small rectangle: totalPop
-		// compute population of entire US: queryPop
+		// compute population of small rectangle: queryPop
+		// compute population of entire US: totalPop
 		for (int i = 0; i < censusData.data_size; i++) {
 			int pop = censusData.data[i].population;
-			
-			//long-minLong / long per rectange
+
+            float curX = (censusData.data[i].longitude - minLong) / colSize;
+            float curY = (censusData.data[i].latitude - minLat) / rowSize;
+
+            if (curX >= (float)west && curX < (float)east
+                    && curY >= (float)south && curY < (float)north) {
+                queryPop += pop;
+            }
+
+            totalPop += pop;
 		}
 				
 	}
