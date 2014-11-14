@@ -19,7 +19,6 @@ public class PopulationQuery {
 	public static float maxLong;
 	
 	public static int totalPop = 0;
-	public static int queryPop = 0;
 	
 	// parse the input file into a large array held in a CensusData object
 	public static CensusData parse(String filename) {
@@ -82,6 +81,10 @@ public class PopulationQuery {
         CensusData censusData = parse(filename);
 
         Scanner console = new Scanner(System.in);
+        float[] sizes = new float[2];
+        if (version.equals("-v1")) {
+            sizes = versionOneDivide(censusData, x, y);
+        }
         boolean cont = true;
         while (cont) {
             System.out.println("Please give west, south, east, north coordinates of your query");
@@ -106,15 +109,16 @@ public class PopulationQuery {
                 if (version.equals("-v1")) {
                     System.out.println("Test starting..."); //TODO: remove
 
-                    versionOne(censusData, x, y, west, south, east, north);
+                    int queryPop = versionOneQuery(censusData, sizes, west, south, east, north);
 
-                    double percent = (double) queryPop / totalPop;
+                    double percent = (double)queryPop / totalPop;
                     percent = Math.round(percent * 100 * 100);
                     percent = percent / 100;
+                    String perc = String.format("%.2f", percent);
 
                     System.out.println("population of rectangle: " + queryPop);
                     System.out.println("total pop: " + totalPop); //TODO: remove
-                    System.out.println("percent of total population: " + percent);
+                    System.out.println("percent of total population: " + perc);
                 }
             } else {
                 cont = false;
@@ -122,12 +126,12 @@ public class PopulationQuery {
         }
 	}
 	
-	public static void versionOne(CensusData censusData, int x, int y,
-                                  int west, int south, int east, int north) {
+	public static float[] versionOneDivide(CensusData censusData, int x, int y) {
 		minLat = censusData.data[0].latitude;
 		maxLat = censusData.data[0].latitude;
 		minLong = censusData.data[0].longitude;
 		maxLong = censusData.data[0].longitude;
+        totalPop = censusData.data[0].population;
 		
 		// compute US rectangle size
 		for (int i = 1; i < censusData.data_size; i++) {
@@ -137,27 +141,35 @@ public class PopulationQuery {
 			maxLat = Math.max(maxLat, lat);
 			minLong = Math.min(minLong, lon);
 			maxLong = Math.max(maxLong, lon);
+            totalPop += censusData.data[i].population;
 		}
+
 
         float colSize = (maxLong - minLong) / x;
         float rowSize = (maxLat - minLat) / y;
-		
-		// compute population of small rectangle: queryPop
-		// compute population of entire US: totalPop
-		for (int i = 0; i < censusData.data_size; i++) {
-			int pop = censusData.data[i].population;
-
-            float curX = (censusData.data[i].longitude - minLong) / colSize;
-            float curY = (censusData.data[i].latitude - minLat) / rowSize;
-
-            if (curX >= (float)west && curX < (float)east
-                    && curY >= (float)south && curY < (float)north) {
-                queryPop += pop;
-            }
-
-            totalPop += pop;
-		}
+        float[] sizes = {colSize, rowSize};
+        return sizes;
 				
 	}
+
+    public static int versionOneQuery(CensusData censusData, float[] sizes,
+                                       int west, int south, int east, int north) {
+        int queryPop = 0;
+
+        // compute population of small rectangle: queryPop
+        // compute population of entire US: totalPop
+        for (int i = 0; i < censusData.data_size; i++) {
+            int pop = censusData.data[i].population;
+
+            float curX = (censusData.data[i].longitude - minLong) / sizes[0]; //colSize
+            float curY = (censusData.data[i].latitude - minLat) / sizes[1]; //rowSize
+
+            if (curX >= (float)(west - 1) && curX < (float)(east)
+                    && curY >= (float)(south - 1) && curY < (float)(north)) {
+                queryPop += pop;
+            }
+        }
+        return queryPop;
+    }
 	
 }
