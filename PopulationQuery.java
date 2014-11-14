@@ -86,7 +86,9 @@ public class PopulationQuery {
         System.out.println("  rectangle:");
         String rect = console.next();
 
-        String[] borders = rect.split(" ");
+        String[] borders = rect.trim().split("-"); //todo: change
+
+        System.out.println("hey borders has a length of " + borders.length); //todo: remove
 
         if (borders.length == 4) {
             int west = Integer.parseInt(borders[0]);
@@ -94,12 +96,14 @@ public class PopulationQuery {
             int east = Integer.parseInt(borders[2]);
             int north = Integer.parseInt(borders[3]);
 
-            if (west < 1 || west < x || south < 1 || south < y
-                    || east < west || east > x || north < south || north < y) {
+            if ((west < 1) || (west > x) || (south < 1) || (south > y)
+                    || (east < west) || (east > x) || (north < south) || (north > y)) {
                 throw new IllegalArgumentException();
             }
 
             if (version.equals("-v1")) {
+                System.out.println("Test starting..."); //TODO: remove
+
                 versionOne(censusData, x, y, west, south, east, north);
 
                 double percent = (double)queryPop / totalPop;
@@ -107,6 +111,7 @@ public class PopulationQuery {
                 percent = percent/100;
 
                 System.out.println("population of rectangle: " + queryPop);
+                System.out.println("total pop: " + totalPop); //TODO: remove
                 System.out.println("percent of total population: " + percent);
             }
         }
@@ -130,16 +135,16 @@ public class PopulationQuery {
 			maxLong = Math.max(maxLong, lon);
 		}
 
-        float colSize = (maxLat - minLat) / x;
-        float rowSize = (maxLong - minLong) / y;
+        float colSize = (maxLong - minLong) / x;
+        float rowSize = (maxLat - minLat) / y;
 		
 		// compute population of small rectangle: queryPop
 		// compute population of entire US: totalPop
 		for (int i = 0; i < censusData.data_size; i++) {
 			int pop = censusData.data[i].population;
 
-            float curX = (censusData.data[i].latitude - minLat) / colSize;
-            float curY = (censusData.data[i].longitude - minLong) / rowSize;
+            float curX = (censusData.data[i].longitude - minLong) / colSize;
+            float curY = (censusData.data[i].latitude - minLat) / rowSize;
 
             if (curX >= (float)west && curX < (float)east
                     && curY >= (float)south && curY < (float)north) {
