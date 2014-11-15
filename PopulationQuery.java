@@ -4,6 +4,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
 
 public class PopulationQuery {
 	// next four constants are relevant to parsing
@@ -19,6 +21,8 @@ public class PopulationQuery {
 	public static float maxLong;
 	
 	public static int totalPop = 0;
+
+    static final ForkJoinPool fjPool = new ForkJoinPool();
 	
 	// parse the input file into a large array held in a CensusData object
 	public static CensusData parse(String filename) {
@@ -133,7 +137,7 @@ public class PopulationQuery {
 		maxLong = censusData.data[0].longitude;
         totalPop = censusData.data[0].population;
 		
-		// compute US rectangle size
+		// compute US rectangle size and total population
 		for (int i = 1; i < censusData.data_size; i++) {
 			float lat = censusData.data[i].latitude;
 			float lon = censusData.data[i].longitude;
@@ -157,19 +161,45 @@ public class PopulationQuery {
         int queryPop = 0;
 
         // compute population of small rectangle: queryPop
-        // compute population of entire US: totalPop
         for (int i = 0; i < censusData.data_size; i++) {
-            int pop = censusData.data[i].population;
-
             float curX = (censusData.data[i].longitude - minLong) / sizes[0]; //colSize
             float curY = (censusData.data[i].latitude - minLat) / sizes[1]; //rowSize
 
             if (curX >= (float)(west - 1) && curX < (float)(east)
                     && curY >= (float)(south - 1) && curY < (float)(north)) {
-                queryPop += pop;
+                queryPop += censusData.data[i].population;
             }
         }
         return queryPop;
+    }
+
+    public static float[] versionTwoDivide() {
+        class SumArray extends RecursiveTask<Integer> {
+            int lo; int hi; int[] arr; // arguments
+            SumArray(int[] a, int l, int h) {
+
+            }
+            protected Integer compute(){// return answer
+                if(hi – lo < SEQUENTIAL_CUTOFF) { int ans = 0;
+                    for(int i=lo; i < hi; i++)
+                        ans += arr[i];
+                    return ans;
+                } else {
+                    SumArray left = new SumArray(arr,lo,(hi+lo)/2);
+                    SumArray right= new SumArray(arr,(hi+lo)/2,hi);
+                    left.fork();
+                    int rightAns = right.compute();
+                    int leftAns  = left.join();
+                } } } return leftAns + rightAns;
+
+        int sum(int[] arr){
+            return fjPool.invoke(new SumArray(arr,0,arr.length));
+        }
+
+
+    }
+    public static int versionTwoQuery() {
+
     }
 	
 }
