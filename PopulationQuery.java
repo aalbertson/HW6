@@ -1,5 +1,5 @@
 
-import com.sun.org.apache.bcel.internal.generic.FLOAD;
+//import com.sun.org.apache.bcel.internal.generic.FLOAD;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -88,11 +88,27 @@ public class PopulationQuery {
         CensusData censusData = parse(filename);
 
         Scanner console = new Scanner(System.in);
-        float[] sizes = new float[2];
-        sizes = versionOneDivide(censusData, x, y);
+        double[] sizes = new double[2];
         int[][] grid = new int[x][y];
-        if(version.equals("-v3")) {
+
+        if(version.equals("-v1")) {
+            sizes = versionOneDivide(censusData, x, y);
+
+
+       /* } else if(version.equals("-v2")) {
+            System.out.println("Hey v2 is starting");//todo: get rid of
+            float[] corners = versionTwoDivide(censusData);
+            sizes[0] = (corners[3] - corners[2]) / x;
+            sizes[1] = (corners[1] - corners[0]) / y;
+            System.out.println("hey v2 finished");//todo: get rid of
+            System.out.println("hey total pop is " + corners[4]);
+            //TODO: change total pop and query pops to ints instead of floats
+
+        } else if(version.equals("-v3")) {
+            sizes = versionOneDivide(censusData, x, y);
             grid = versionThreeDivide(censusData, x, y, sizes);
+        */} else {
+
         }
 
         boolean cont = true;
@@ -129,7 +145,10 @@ public class PopulationQuery {
                     System.out.println("population of rectangle: " + queryPop);
                     System.out.println("total pop: " + totalPop); //TODO: remove
                     System.out.println("percent of total population: " + perc);
-                } else if(version.equals("-v3")) {
+                } else if(version.equals("-v2")) {
+                    //TODO
+
+                } /*else if(version.equals("-v3")) {
                     System.out.println("Test starting..."); //TODO: remove
 
                     int queryPop = versionThreeQuery(grid, west, south, east, north);
@@ -142,14 +161,14 @@ public class PopulationQuery {
                     System.out.println("population of rectangle: " + queryPop);
                     System.out.println("total pop: " + totalPop); //TODO: remove
                     System.out.println("percent of total population: " + perc);
-                }
+                }*/
             } else {
                 cont = false;
             }
         }
 	}
 
-	public static float[] versionOneDivide(CensusData censusData, int x, int y) {
+	public static double[] versionOneDivide(CensusData censusData, int x, int y) {
 		minLat = censusData.data[0].latitude;
 		maxLat = censusData.data[0].latitude;
 		minLong = censusData.data[0].longitude;
@@ -168,61 +187,132 @@ public class PopulationQuery {
 		}
 
 
-        float colSize = (maxLong - minLong) / x;
-        float rowSize = (maxLat - minLat) / y;
-        float[] sizes = {colSize, rowSize};
+        double colSize = ((double)maxLong - (double)minLong) / x;
+        double rowSize = ((double)maxLat - (double)minLat) / y;
+        double[] sizes = {colSize, rowSize};
         return sizes;
 				
 	}
 
-    public static int versionOneQuery(CensusData censusData, float[] sizes,
+    public static int versionOneQuery(CensusData censusData, double[] sizes,
                                        int west, int south, int east, int north) {
         int queryPop = 0;
 
         // compute population of small rectangle: queryPop
         for (int i = 0; i < censusData.data_size; i++) {
-            float curX = (censusData.data[i].longitude - minLong) / sizes[0]; //colSize
-            float curY = (censusData.data[i].latitude - minLat) / sizes[1]; //rowSize
+            double curX = (censusData.data[i].longitude - minLong) / sizes[0]; //colSize
+            double curY = (censusData.data[i].latitude - minLat) / sizes[1]; //rowSize
+            int column = (int)curX + 1;
+            int row = (int)curY + 1;
 
-            if (curX >= (float)(west - 1) && curX < (float)(east)
-                    && curY >= (float)(south - 1) && curY < (float)(north)) {
+            if ((column >= west) && (column <= east) && (row >= south) && (row <= north)) {
                 queryPop += censusData.data[i].population;
             }
         }
+
         return queryPop;
     }
+/*
 
-<<<<<<< HEAD
-    public static float[] versionTwoDivide() {
-        class SumArray extends RecursiveTask<Integer> {
-            int lo; int hi; int[] arr; // arguments
-            SumArray(int[] a, int l, int h) {
+    //v2 number one
+    static class VTwoDivide extends RecursiveTask<float[]> {
+        private static final int SEQUENTIAL_CUTOFF = 500; //TODO: figure out what this should be
+       // int lo; int hi; int[] arr; // arguments
+        int lo;
+        int hi;
+        CensusData censusData;
 
-            }
-            protected Integer compute(){// return answer
-                if(hi – lo < SEQUENTIAL_CUTOFF) { int ans = 0;
-                    for(int i=lo; i < hi; i++)
-                        ans += arr[i];
-                    return ans;
-                } else {
-                    SumArray left = new SumArray(arr,lo,(hi+lo)/2);
-                    SumArray right= new SumArray(arr,(hi+lo)/2,hi);
-                    left.fork();
-                    int rightAns = right.compute();
-                    int leftAns  = left.join();
-                } } } return leftAns + rightAns;
-
-        int sum(int[] arr){
-            return fjPool.invoke(new SumArray(arr,0,arr.length));
+        VTwoDivide(CensusData censusData, int l, int h) {
+            this.censusData = censusData;
+            this.lo = l;
+            this.hi = h;
         }
+        protected float[] compute(){// return answer
+            if((hi - lo) < SEQUENTIAL_CUTOFF) {
+                //int ans = 0;
+                // i think i should maybe make an array of floats to return
+                float[] ans = {Float.MAX_VALUE, Float.MIN_VALUE, Float.MAX_VALUE, Float.MIN_VALUE, 0};
 
+                for(int i=lo; i < hi; i++) {
+                    //ans += arr[i];
 
+                    float lat = censusData.data[i].latitude;
+                    float lon = censusData.data[i].longitude;
+                    ans[0] = Math.min(minLat, lat); // min lat
+                    ans[1] = Math.max(maxLat, lat); //max lat
+                    ans[2] = Math.min(minLong, lon); //min long
+                    ans[3] = Math.max(maxLong, lon); // max long
+                    ans[4] += censusData.data[i].population;
+                    //return ans;
+                }
+                return ans;
+            } else {
+                VTwoDivide left = new VTwoDivide(censusData,lo,(hi+lo)/2);
+                VTwoDivide right= new VTwoDivide(censusData,(hi+lo)/2,hi);
+                left.fork();
+                float[] rightAns = right.compute();
+                float[] leftAns  = left.join();
+                float[] newAns = new float[5];
+                newAns[0] = Math.min(rightAns[0], leftAns[0]);
+                newAns[1] = Math.max(rightAns[1], leftAns[1]);
+                newAns[2] = Math.min(rightAns[2], leftAns[2]);
+                newAns[3] = Math.max(rightAns[3], leftAns[3]);
+                newAns[4] = rightAns[4] + leftAns[4];
+                return newAns;
+            }
+        }
     }
-    public static int versionTwoQuery() {
 
+    static float[] versionTwoDivide(CensusData censusData){
+       // return fjPool.invoke(new SumArray(arr,0,arr.length));
+        return fjPool.invoke(new VTwoDivide(censusData,0,censusData.data_size));
     }
-	
-=======
+
+
+    //v2 number two
+    class SumArray extends RecursiveTask<Integer> {
+        private static final int SEQUENTIAL_CUTOFF = 500; //TODO: figure out what this should be
+        // int lo; int hi; int[] arr; // arguments
+        int lo;
+        int hi;
+        CensusData censusData;
+
+        SumArray(CensusData censusData, int l, int h) {
+            this.censusData = censusData;
+            this.lo = l;
+            this.hi = h;
+        }
+        protected Integer compute(){// return answer
+            if((hi - lo) < SEQUENTIAL_CUTOFF) {
+                //int ans = 0;
+                for(int i=lo; i < hi; i++)
+                    //ans += arr[i];
+                    totalPop += censusData.data[i].population;
+                //return ans;
+                return totalPop;
+            } else {
+                SumArray left = new SumArray(censusData,lo,(hi+lo)/2);
+                SumArray right= new SumArray(censusData,(hi+lo)/2,hi);
+                left.fork();
+                int rightAns = right.compute();
+                int leftAns  = left.join();
+                return leftAns + rightAns;
+            }
+        }
+    }
+
+    int sum(CensusData censusData){
+        // return fjPool.invoke(new SumArray(arr,0,arr.length));
+        return fjPool.invoke(new SumArray(censusData,0,censusData.data_size));
+    }
+
+
+   /* public float[] versionTwoQuery(CensusData censusData) {
+        float[] here = new float[];
+        here = versionTwoDivide(censusData);
+    }*/
+
+/*
     public static int[][] versionThreeDivide(CensusData censusData, int x, int y, float[] sizes) {
 
         int[][] grid = new int[x][y];
@@ -268,7 +358,5 @@ public class PopulationQuery {
         }
         return population;
     }
-
-
->>>>>>> 345598d3256997ca75d7e2a4190cb46d37020aac
+*/
 }
