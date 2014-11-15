@@ -1,8 +1,11 @@
 
+import com.sun.org.apache.bcel.internal.generic.FLOAD;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.Float;
 import java.util.Scanner;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
@@ -86,9 +89,12 @@ public class PopulationQuery {
 
         Scanner console = new Scanner(System.in);
         float[] sizes = new float[2];
-        if (version.equals("-v1")) {
-            sizes = versionOneDivide(censusData, x, y);
+        sizes = versionOneDivide(censusData, x, y);
+        int[][] grid = new int[x][y];
+        if(version.equals("-v3")) {
+            grid = versionThreeDivide(censusData, x, y, sizes);
         }
+
         boolean cont = true;
         while (cont) {
             System.out.println("Please give west, south, east, north coordinates of your query");
@@ -123,13 +129,26 @@ public class PopulationQuery {
                     System.out.println("population of rectangle: " + queryPop);
                     System.out.println("total pop: " + totalPop); //TODO: remove
                     System.out.println("percent of total population: " + perc);
+                } else if(version.equals("-v3")) {
+                    System.out.println("Test starting..."); //TODO: remove
+
+                    int queryPop = versionThreeQuery(grid, west, south, east, north);
+
+                    double percent = (double)queryPop / totalPop;
+                    percent = Math.round(percent * 100 * 100);
+                    percent = percent / 100;
+                    String perc = String.format("%.2f", percent);
+
+                    System.out.println("population of rectangle: " + queryPop);
+                    System.out.println("total pop: " + totalPop); //TODO: remove
+                    System.out.println("percent of total population: " + perc);
                 }
             } else {
                 cont = false;
             }
         }
 	}
-	
+
 	public static float[] versionOneDivide(CensusData censusData, int x, int y) {
 		minLat = censusData.data[0].latitude;
 		maxLat = censusData.data[0].latitude;
@@ -173,6 +192,7 @@ public class PopulationQuery {
         return queryPop;
     }
 
+<<<<<<< HEAD
     public static float[] versionTwoDivide() {
         class SumArray extends RecursiveTask<Integer> {
             int lo; int hi; int[] arr; // arguments
@@ -202,4 +222,53 @@ public class PopulationQuery {
 
     }
 	
+=======
+    public static int[][] versionThreeDivide(CensusData censusData, int x, int y, float[] sizes) {
+
+        int[][] grid = new int[x][y];
+        for (int i = 0; i < censusData.data_size; i++) {
+            Float curX = (censusData.data[i].longitude - minLong) / sizes[0];
+            Float curY = (censusData.data[i].latitude - minLat) / sizes[1];
+            int column = curX.intValue();
+            int row = curY.intValue();
+            if (column == x) {
+                column--;
+            }
+            if (row == y) {
+                row--;
+            }
+            grid[column][row] += censusData.data[i].population;
+        }
+        for (int i = 0; i < x; i++) {
+            for(int j = y - 1; j >= 0; j--) {
+                if (i != 0) {
+                    grid[i][j] += grid[i - 1][j];
+                }
+                if (j != y - 1) {
+                    grid[i][j] += grid[i][j + 1];
+                }
+                if (i != 0 && j != y - 1) {
+                    grid[i][j] -= grid[i - 1][j + 1];
+                }
+            }
+        }
+        return grid;
+    }
+
+    public static int versionThreeQuery(int[][] grid, int west, int south, int east, int north) {
+        int population = grid[east - 1][south - 1];
+        if (west != 1) {
+            population -= grid[west - 2][south - 1];
+        }
+        if (north != grid[0].length) {
+            population -= grid[east - 1][north];
+        }
+        if (north != grid[0].length && west != 1) {
+            population += grid[west - 2][north];
+        }
+        return population;
+    }
+
+
+>>>>>>> 345598d3256997ca75d7e2a4190cb46d37020aac
 }
