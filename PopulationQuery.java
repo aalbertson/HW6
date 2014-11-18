@@ -16,14 +16,7 @@ public class PopulationQuery {
     public static final int POPULATION_INDEX = 4; // zero-based indices
     public static final int LATITUDE_INDEX = 5;
     public static final int LONGITUDE_INDEX = 6;
-
-    // TODO: get rid of later and rearrange code
-    public static float minLat;
-    public static float maxLat;
-    public static float minLong;
-    public static float maxLong;
-
-    public static int totalPop = 0;
+    
 
     static final ForkJoinPool fjPool = new ForkJoinPool();
 
