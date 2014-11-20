@@ -1,8 +1,5 @@
-
 //import com.sun.org.apache.bcel.internal.generic.FLOAD;
-
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.Float;
@@ -10,6 +7,17 @@ import java.util.Scanner;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 
+
+/**
+ * The PopulationQuery class processes census data in order to answer queries
+ * about population densities.
+ *
+ * CSE 332, HW 6
+ * 11/21/2014
+ *
+ * @author Emily Blaser
+ * @author Joseph Kesting
+ */
 public class PopulationQuery {
     // next four constants are relevant to parsing
     public static final int TOKENS_PER_LINE = 7;
@@ -82,6 +90,7 @@ public class PopulationQuery {
 
         Scanner console = new Scanner(System.in);
 
+        // Processes the data to find the four corners of the rectangle containing the US
         int[][] grid = new int[x][y];
         Data data = new Data();
         if (version.equals("-v1") || version.equals("-v3")) {
@@ -100,6 +109,9 @@ public class PopulationQuery {
             }
         }
 
+        // Accepts user queries to calculate information about population densities in
+        // specified areas (rectangles) of the US. The program will continue to ask for user
+        // queries until the user enters data other than the four rectangle bounds
         boolean cont = true;
         while (cont) {
             System.out.println("Please give west, south, east, north coordinates of your query");
@@ -125,7 +137,6 @@ public class PopulationQuery {
                 } else if (version.equals("-v2")) {
                     queryPop = versionTwoQuery(data, border);
                 } else if (version.equals("-v3") || version.equals("-v4")) {
-                    int totalPopulation = 0;
                     queryPop = versionThreeQuery(grid, border);
                 }
                 double percent = (double) queryPop / data.totalPop();
@@ -141,6 +152,7 @@ public class PopulationQuery {
         }
     }
 
+    // post: finds the four corners of the rectangle containing the US
     public static double[] versionOneDivide(CensusData censusData) {
         double[] borders = new double[5];
         borders[0] = (double)censusData.data[0].longitude;
@@ -149,7 +161,6 @@ public class PopulationQuery {
         borders[3] = (double)censusData.data[0].latitude;
         borders[4] = (double)censusData.data[0].population;
 
-        // compute US rectangle size and total population
         for (int i = 1; i < censusData.data_size; i++) {
             float lat = censusData.data[i].latitude;
             float lon = censusData.data[i].longitude;
@@ -163,6 +174,8 @@ public class PopulationQuery {
         return borders;
     }
 
+    // pre: census data processed
+    // post: returns the population of the user specified query rectangle
     public static int versionOneQuery(Data data, int[] border) {
         int queryPop = 0;
         for (int i = 0; i < data.censusData.data_size; i++) {
@@ -183,9 +196,9 @@ public class PopulationQuery {
         return queryPop;
     }
 
-
+    // Class VTwoDivide finds the four corners of the rectangle containing the US
     static class VTwoDivide extends RecursiveTask<double[]> {
-        private static final int SEQUENTIAL_CUTOFF = 500; //TODO: figure out what this should be
+        private static final int SEQUENTIAL_CUTOFF = 500;
 
         int lo;
         int hi;
@@ -230,13 +243,14 @@ public class PopulationQuery {
         }
     }
 
+    // post: finds the four corners of the rectangle containing the US
     static double[] versionTwoDivide(CensusData censusData) {
         return fjPool.invoke(new VTwoDivide(censusData, 0, censusData.data_size));
     }
 
-
+    // Class VTwoQuery finds the population of the user specified query rectangle
     static class VTwoQuery extends RecursiveTask<Integer> {
-        private static final int SEQUENTIAL_CUTOFF = 500; //TODO: figure out what this should be
+        private static final int SEQUENTIAL_CUTOFF = 500;
         int[] border;
         Data data;
         int lo;
@@ -281,11 +295,13 @@ public class PopulationQuery {
         }
     }
 
+    // pre: census data processed
+    // post: returns the population of the user specified query rectangle
     static int versionTwoQuery(Data data, int[] borders) {
         return fjPool.invoke(new VTwoQuery(data, borders, 0, data.censusData.data_size));
     }
 
-
+    // post: returns a grid, with each cell containing the total population for that grid position
     public static int[][] versionThreeDivide(Data data) {
 
         int[][] grid = new int[data.x][data.y];
@@ -305,6 +321,8 @@ public class PopulationQuery {
         return grid;
     }
 
+    // post: returns a modified grid, with each cell holding the total population for
+    // the current cell as well as all positions farther north and/or west
     public static int[][] versionThreeAlter(int[][] grid) {
         for (int i = 0; i < grid.length; i++) {
             for (int j = grid[i].length - 1; j >= 0; j--) {
@@ -322,6 +340,8 @@ public class PopulationQuery {
         return grid;
     }
 
+    // pre: census data processed
+    // post: returns the population of the user specified query rectangle
     public static int versionThreeQuery(int[][] grid, int[] border) {
         int population = grid[border[2] - 1][border[1] - 1];
         if (border[0] != 1) {
@@ -336,8 +356,9 @@ public class PopulationQuery {
         return population;
     }
 
+    // Class VFourMakeGrid creates a grid, with each cell containing the total population for that grid position
     static class VFourMakeGrid extends RecursiveTask<int[][]> {
-        private static final int SEQUENTIAL_CUTOFF = 500; //TODO: figure out what this should be
+        private static final int SEQUENTIAL_CUTOFF = 500;
         Data data;
         int low;
         int high;
@@ -377,6 +398,7 @@ public class PopulationQuery {
         }
     }
 
+    // Class VFourAddGrids adds grids, with each cell containing a population for that grid position
     static class VFourAddGrids extends RecursiveTask<int[][]> {
         private static final int SEQUENTIAL_CUTOFF = 100;
 
@@ -425,12 +447,16 @@ public class PopulationQuery {
         }
     }
 
+    // post: returns a grid, with each cell holding the total population for
+    // the current cell as well as all positions farther north and/or west
     static int[][] versionFourDivide(Data data) {
         int[][] grid = fjPool.invoke(new VFourMakeGrid(data, 0, data.censusData.data_size));
         grid = versionThreeAlter(grid);
         return grid;
     }
 
+    // Class Data provides information about census data, the US rectangle size, as well as query
+    // grid information
     static class Data {
         CensusData censusData;
         double[] borders;
@@ -451,22 +477,27 @@ public class PopulationQuery {
             this.y = 0;
         }
 
+        // calculates the column sizes of the US rectangle for querying
         public double colSize () {
-            return (double) (borders[1] - borders[0]) / x;
+            return (borders[1] - borders[0]) / x;
         }
 
+        // caluclates the row sizes of the US rectangle for querying
         public double rowSize () {
-            return (double) (borders[3] - borders[2]) / y;
+            return (borders[3] - borders[2]) / y;
         }
 
+        // returns the minimum longitude of the census data
         public double minLong () {
             return borders[0];
         }
 
+        // returns the minimum latitude of the census data
         public double minLat () {
             return borders[2];
         }
 
+        // returns the total population of the US
         public int totalPop () {
             return (int) borders[4];
         }
